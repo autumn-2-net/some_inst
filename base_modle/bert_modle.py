@@ -14,10 +14,13 @@ class main_config():
     n_head = 16  #8头吧？
     n_embd =n_img_embd
     n_vebs =32 #笔画长度
+    n_vebs_long =48
     n_img_s =64 #图像长度
     img_bert_lay =6
     bh_bert_lay =4
     co_att_lay =5
+    embd_pdrop =0.2
+    LR=0.0001
 
 
 
@@ -49,12 +52,17 @@ class MultiheadSelfAttention(nn.Module):
         k = self.key(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
         q = self.query(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
         v = self.value(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
-        print('a')
+        # print('a')
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
         # att = att.masked_fill(self.mask[:,:,:T,:T] == 0, float('-inf'))
         if att_mask is not None: #根据原文mask的只有 图像部分 当输入补pad的时候 因为图像不会被mask 使用不需要？
-            att =att+att_mask
+            maskt =att_mask.view(B, T, self.n_head, C // self.n_head).transpose(1, 2)@ k.transpose(-2, -1)
+            one = torch.ones_like(maskt)
+            maskt =torch.where(maskt > 0.0, one, maskt)
+            maskt = torch.where(maskt < 0.0, one, maskt)
+            maskt = maskt*-10000
+            att =att+maskt
 
         att = torch.softmax(att, dim=-1)
         # att = self.attn_drop(att)
@@ -75,6 +83,7 @@ class BERT_Block(nn.Module):
         self.ln1 = nn.LayerNorm(config.n_embd)
         self.ln2 = nn.LayerNorm(config.n_embd)
         self.attn = MultiheadSelfAttention(config)
+        # self.attn = SublinearSequential(self.attn)
         self.mlp = nn.Sequential(
             nn.Linear(config.n_embd, 4 * config.n_embd),
             nn.GELU(),
@@ -83,9 +92,10 @@ class BERT_Block(nn.Module):
         )
 
 
-        # self.mlp = SublinearSequential(*list(self.mlp.children()))  #减小400m
+        self.mlp = SublinearSequential(*list(self.mlp.children()))  #减小400m
 
-    def forward(self, x,att_mask=None):
+    def forward(self, x,att_mask):
+
         x = x + self.attn(self.ln1(x),att_mask=att_mask)
         x = x + self.mlp(self.ln2(x))
         return x
@@ -94,11 +104,14 @@ class bert_modle(nn.Module):
     def __init__(self,config,layers=4):
         super().__init__()
         self.drop = nn.Dropout(config.embd_pdrop)
-        self.blocks = nn.Sequential(*[BERT_Block(config=config) for _ in range(layers)])
-        self.blocks =SublinearSequential(*list(self.blocks.children()))
+        self.blocks = nn.ModuleList([BERT_Block(config=config) for _ in range(layers)])
+        # self.blocks = nn.Sequential(*[BERT_Block(config=config) for _ in range(layers)])
+        # self.blocks =SublinearSequential(*list(self.blocks.children()))
 
     def forward(self, x,att_mask=None):
-        return self.blocks(x,att_mask)
+        for i in self.blocks:
+            x =i(x,att_mask)
+        return x
 
 
 # class GPT_Model(nn.Module):
@@ -251,7 +264,7 @@ class co_attentional(nn.Module):
         # k = self.key(x_img).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)  # (B, nh, T, hs)
         # q = self.query(x_img).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)  # (B, nh, T, hs)
         # v = self.value(x_img).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)  # (B, nh, T, hs)
-        print('a')
+        # print('a')
         q_img =self.query_img(x_img).view(B_img, T_img, self.n_head, C_img // self.n_head).transpose(1, 2)
         k_f_img=self.key_img_to_bh(x_img).view(B_img, T_img, self.n_head, C_img // self.n_head).transpose(1, 2)
         v_f_img = self.value_img_to_bh(x_img).view(B_img, T_img, self.n_head, C_img // self.n_head).transpose(1, 2)
@@ -261,14 +274,33 @@ class co_attentional(nn.Module):
         v_f_bh = self.value_bh_to_img(y_bh).view(B_bh, T_bh, self.n_head, C_bh // self.n_head).transpose(1, 2)
 
         att_img=(q_img @ k_f_bh.transpose(-2, -1))* (1.0 / math.sqrt(k_f_bh.size(-1)))
+        # if attention_mask is not None: #根据原文mask的只有 图像部分 当输入补pad的时候 因为图像不会被mask 使用不需要？，我超 znm根本就mask不上去
+        #     att_img =att_img+attention_mask.view(B_bh, T_bh, self.n_head, C_bh // self.n_head).transpose(1, 2)
         if attention_mask is not None: #根据原文mask的只有 图像部分 当输入补pad的时候 因为图像不会被mask 使用不需要？
-            att_img =att_img+attention_mask
+            maskt =attention_mask.view(B_bh, T_bh, self.n_head, C_bh // self.n_head).transpose(1, 2)
+            maskt =q_img @ maskt.transpose(-2, -1)
+            one = torch.ones_like(maskt)
+            maskt =torch.where(maskt > 0.0, one, maskt)
+            maskt = torch.where(maskt < 0.0, one, maskt)
+            maskt = maskt*-10000
+            att_img =att_img+maskt
         att_img = torch.softmax(att_img, dim=-1)
         out_img =att_img @ v_f_bh
         out_img = out_img.transpose(1, 2).contiguous().view(B_img, T_img, C_img)
         out_img =self.proj_img(out_img)
 
         att_bh =(q_bh @ k_f_img.transpose(-2, -1))* (1.0 / math.sqrt(k_f_img.size(-1)))
+        # if attention_mask is not None: #根据原文mask的只有 图像部分 当输入补pad的时候 因为图像不会被mask 使用不需要？，我超 znm根本就mask不上去
+        #     att_bh =att_bh+attention_mask.view(B_bh, T_bh, self.n_head, C_bh // self.n_head).transpose(1, 2)
+
+        # if attention_mask is not None: #根据原文mask的只有 图像部分 当输入补pad的时候 因为图像不会被mask 使用不需要？
+        #     maskt =attention_mask.view(B_bh, T_bh, self.n_head, C_bh // self.n_head).transpose(1, 2)
+        #     maskt =maskt @k_f_img.transpose(-2, -1)
+        #     one = torch.ones_like(maskt)
+        #     maskt =torch.where(maskt > 0.0, one, maskt)
+        #     maskt = torch.where(maskt < 0.0, one, maskt)
+        #     maskt = maskt*-10000
+        #     att_bh =att_bh+maskt
         att_bh = torch.softmax(att_bh, dim=-1)
         out_bh = att_bh @ v_f_img
         out_bh = out_bh.transpose(1, 2).contiguous().view(B_bh, T_bh, C_bh)
@@ -321,8 +353,8 @@ class co_encode_lay(nn.Module):
 
 
 
-    def forward(self,input,att_mask_bh=None,att_mask_img=None):
-        img, bh =input
+    def forward(self,input1,att_mask_bh=None,att_mask_img=None):
+        img, bh =input1
         x_img,y_bh =self.co_att(img,bh,attention_mask=att_mask_bh)
         x_img=x_img+img
         x_img = self.LN_img(x_img) #归一
@@ -352,11 +384,13 @@ class co_encode_lay(nn.Module):
 class co_encode_modle(nn.Module):
     def __init__(self,config,layers=5):
         super().__init__()
-        self.blocks = nn.Sequential(*[co_encode_lay(config=config) for _ in range(layers)])
-        self.blocks = SublinearSequential(*list(self.blocks.children()))
+        self.blocks = nn.ModuleList([co_encode_lay(config=config) for _ in range(layers)])
+        # self.blocks = SublinearSequential(*list(self.blocks.children()))
 
     def forward(self, x,y,att_mask=None,att_mask_img=None):
-        return self.blocks(x,y,att_mask_bh= att_mask,att_mask_img=att_mask_img)
+        for i in self.blocks:
+            x,y =i((x,y), att_mask,att_mask_img)
+        return x,y
 
 
 
