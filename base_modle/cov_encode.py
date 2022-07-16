@@ -19,6 +19,9 @@ class cov_encode(nn.Module):
         a =self.cov1(x)
         return self.cov2(a)
 
+        # return a
+
+
 # a =cov_encode()
 # c = torch.FloatTensor(3,256,256)
 # a =a(c)

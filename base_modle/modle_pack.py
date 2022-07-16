@@ -22,9 +22,9 @@ class main_encoder(nn.Module):
 class world_img_embedding(nn.Module):
     def __init__(self,config):
         super().__init__()
-        self.embedding=nn.Embedding(num_embeddings=48,embedding_dim=512,padding_idx=0) #词嵌入
-        self.position = nn.Embedding(num_embeddings=65,embedding_dim=512,padding_idx=64)  # 1 -64
-        self.type1 = nn.Embedding(num_embeddings=3,embedding_dim=512,padding_idx=2)  # 0-img,1-bh两类
+        self.embedding=nn.Embedding(num_embeddings=48,embedding_dim=config.n_img_embd,padding_idx=0) #词嵌入
+        self.position = nn.Embedding(num_embeddings=65,embedding_dim=config.n_img_embd,padding_idx=64)  # 1 -64
+        self.type1 = nn.Embedding(num_embeddings=3,embedding_dim=config.n_img_embd,padding_idx=2)  # 0-img,1-bh两类
         self.LayerNorm_bh = nn.LayerNorm(config.n_embd, eps=1e-12)
         self.LayerNorm_img = nn.LayerNorm(config.n_embd, eps=1e-12)
         # self.dropout = nn.Dropout(config.hidden_dropout_prob)
@@ -70,7 +70,7 @@ class part_of_main_modle(nn.Module):
     def forward(self, img,bh,att_mask=None,att_mask_img=None):
 
         x=self.cov_encode(img)
-        img_cov =x.view(x.size(0),512,64).transpose(1, 2)
+        img_cov =x.view(x.size(0),self.config.n_img_embd,64).transpose(1, 2)
         # img_cov = img_cov.view((512,64)).transpose(0, 1)
         img_emb =self.embedding(img_cov,0)
         bh_embedding =self.embedding(bh,1)

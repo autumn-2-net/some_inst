@@ -19,8 +19,8 @@ class main_config():
     img_bert_lay =6
     bh_bert_lay =4
     co_att_lay =5
-    embd_pdrop =0.2
-    LR=0.0001
+    embd_pdrop =0.1
+    LR=0.0003
 
 
 
@@ -110,7 +110,7 @@ class bert_modle(nn.Module):
 
     def forward(self, x,att_mask=None):
         for i in self.blocks:
-            x =i(x,att_mask)
+            x =self.drop(i(x,att_mask))
         return x
 
 
@@ -297,9 +297,11 @@ class co_attentional(nn.Module):
         #     maskt =attention_mask.view(B_bh, T_bh, self.n_head, C_bh // self.n_head).transpose(1, 2)
         #     maskt =maskt @k_f_img.transpose(-2, -1)
         #     one = torch.ones_like(maskt)
+        #
         #     maskt =torch.where(maskt > 0.0, one, maskt)
         #     maskt = torch.where(maskt < 0.0, one, maskt)
         #     maskt = maskt*-10000
+        #     sssss =maskt.detach().cpu().clone().numpy()
         #     att_bh =att_bh+maskt
         att_bh = torch.softmax(att_bh, dim=-1)
         out_bh = att_bh @ v_f_img
