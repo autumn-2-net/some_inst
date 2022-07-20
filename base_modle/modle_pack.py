@@ -15,8 +15,10 @@ class main_encoder(nn.Module):
 
     def forward(self,img,bh,att_mask=None,img_attention_mask=None):
         imgg =self.img_bert(img)
-        bhh =self.bh_bert(bh,att_mask.to(bh.device))
-        out_img,out_bh = self.co_attentional(imgg,bhh,att_mask.to(bh.device))
+        if att_mask is not None:
+            att_mask =att_mask.to(bh.device)
+        bhh =self.bh_bert(bh,att_mask)
+        out_img,out_bh = self.co_attentional(imgg,bhh,att_mask)
         return out_img, out_bh
 
 class world_img_embedding(nn.Module):
@@ -77,7 +79,8 @@ class part_of_main_modle(nn.Module):
         if att_mask is not None:
             # print('a')
             mask=make_mask(bh=bh,mask=att_mask,config=self.config)
+            mask =mask.to(bh.device)
         else:
             mask =None
-        return self.main_encoder(img_emb,bh_embedding,mask.to(bh.device))
+        return self.main_encoder(img_emb,bh_embedding,mask)
 

@@ -6,7 +6,7 @@ class res_block(nn.Module):
 
         super().__init__()
         self.cov =nn.Conv2d(in_channels=chanal,out_channels=chanal,kernel_size=covsiz,stride=stride,padding=padding)
-        self.relu =nn.ELU()
+        self.relu =nn.SELU()
 
     def swish(self,x):
         a =nn.Sigmoid()
@@ -15,8 +15,8 @@ class res_block(nn.Module):
     def forward(self,x):
         a =x
         b =self.cov(x)
-        # b=self.relu(b)
-        b = self.swish(b)
+        b=self.relu(b)
+        # b = self.swish(b)
         return a+b
 
 class res_modle(nn.Module):

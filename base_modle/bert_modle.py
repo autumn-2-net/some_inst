@@ -56,13 +56,13 @@ class MultiheadSelfAttention(nn.Module):
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
         # att = att.masked_fill(self.mask[:,:,:T,:T] == 0, float('-inf'))
-        if att_mask is not None: #根据原文mask的只有 图像部分 当输入补pad的时候 因为图像不会被mask 使用不需要？
-            maskt =att_mask.view(B, T, self.n_head, C // self.n_head).transpose(1, 2)@ k.transpose(-2, -1)
-            one = torch.ones_like(maskt)
-            maskt =torch.where(maskt > 0.0, one, maskt)
-            maskt = torch.where(maskt < 0.0, one, maskt)
-            maskt = maskt*-10000
-            att =att+maskt
+        # if att_mask is not None: #根据原文mask的只有 图像部分 当输入补pad的时候 因为图像不会被mask 使用不需要？
+        #     maskt =att_mask.view(B, T, self.n_head, C // self.n_head).transpose(1, 2)@ k.transpose(-2, -1)
+        #     one = torch.ones_like(maskt)
+        #     maskt =torch.where(maskt > 0.0, one, maskt)
+        #     maskt = torch.where(maskt < 0.0, one, maskt)
+        #     maskt = maskt*-10000
+        #     att =att+maskt
 
         att = torch.softmax(att, dim=-1)
         # att = self.attn_drop(att)
@@ -110,7 +110,7 @@ class bert_modle(nn.Module):
 
     def forward(self, x,att_mask=None):
         for i in self.blocks:
-            x =self.drop(i(x,att_mask))
+            x =i(x,att_mask)
         return x
 
 

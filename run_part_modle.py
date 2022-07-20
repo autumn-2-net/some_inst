@@ -7,6 +7,7 @@ import pytorch_lightning as pyl
 import torch
 import torch.nn as nn
 from pytorch_lightning import Trainer
+
 from tqdm import tqdm
 
 from base_modle.modle_pack import part_of_main_modle
@@ -42,11 +43,11 @@ viz.line([0.],    ## Y的第一个点坐标
 
 
 class configs(main_config):
-    n_head =16
+    n_head =8
     LR = 0.0003
-    img_bert_lay = 9
-    bh_bert_lay = 5
-    co_att_lay = 8
+    img_bert_lay = 6
+    bh_bert_lay = 4
+    co_att_lay = 6
     # n_img_embd = 1024  # 图片特征维度
     # n_bh_embd = 1024  # 笔画特征维度
     #
@@ -114,12 +115,14 @@ class dataloadd(Dataset):
         for i in words:
             list1 = []
             cc = words[i]
+            list1.append(1)
             for j in cc:
                 asda = mappi.get(j)
                 if asda is None:
                     list1.append(47)
                     continue
                 list1.append(asda)
+            list1.append(44)
             jsonnn[i] = list1
         self.wordd =jsonnn
         ppp =''
@@ -185,7 +188,7 @@ class dataloadd(Dataset):
     def get_tk_list(self,tocken):
         listtt :list= self.wordd[tocken]
 
-        bhl:list =listtt
+        bhl:list =listtt.copy()
         mask_bh,bh_mask_l =self.bh_mask(listtt.copy())
 
         l = len(listtt)
@@ -203,14 +206,32 @@ class dataloadd(Dataset):
             cccsd2.extend(0 for _ in range(aa - l))
             mask = cccsd + cccsd2
 
+        # for inx, var in enumerate(listtt):
+        #     if var == 0:
+        #         # assert 'errrrr'
+        #         # print('rrrrrrrrrrr')
+        #         # raise '1111'
+        #         if inx > 0:
+        #             raise '1111'
+        #     if inx > 20:
+        #         if var != 0:
+        #             pass
+        #             # raise 'emmmmmm'
+
         return bhl, mask,mask_bh,bh_mask_l
 
     def bh_mask(self,bh):
         mask_num=0
-        out_bh =bh
+        out_bh =bh.copy()
         mask_list = []
+        leeeor =len(bh)
         for inx, val in enumerate(bh):
             cdf =random.random()
+            if inx ==0:
+                continue
+            if inx ==(leeeor-1):
+                continue
+
 
             if cdf <= 0.15:
                 rdf = random.random()
@@ -219,13 +240,14 @@ class dataloadd(Dataset):
                     mask_list.append(inx)
                     mask_num =mask_num + 1
                 elif rdf>=0.1:
-                    out_bh[inx] = np.random.randint(0, self.config.n_vebs_long)
+                    # out_bh[inx] = np.random.randint(2, self.config.n_vebs_long)
+                    out_bh[inx] = np.random.randint(2, 43)
                     mask_list.append(inx)
                     mask_num = mask_num + 1
 
         if mask_num ==0:
             lenss =len(out_bh)
-            inx =np.random.randint(0, lenss)
+            inx =np.random.randint(2, lenss)
             out_bh[inx] =43
             mask_list.append(inx)
 
@@ -260,6 +282,7 @@ class dataloadd(Dataset):
         bh_list=torch.tensor(bh_list,dtype=torch.long)
         mask_bh=torch.tensor(mask_bh,dtype=torch.long)
         mskk_inx =torch.tensor(mskk_inx,dtype=torch.long)
+
         return img_tensor,mask_bh,tkm,mask,'None',mskk_inx
 
 
@@ -270,7 +293,29 @@ class dataloadd(Dataset):
 
 # print('生成数据ing')
 # fast_ran_list = [dataa[0] for _ in tqdm(range(400000))]
+# dataa = dataloadd(len11=10000, v_words_path='fix1.json', mapping_path='映射.json', path_ttf='./datas/ttfs/',
+#                       config=configs())
 
+
+# for i in dataa:
+#     print(i)
+#     img, bh, r_bh, att_mask, att_mask_img, mask_List = i
+
+# for ai in tqdm(dataa):
+#     # print(ai)
+#     img, bh, r_bh, att_mask, att_mask_img, mask_List = ai
+#     for inx, var in enumerate(bh):
+#         if var == 43:
+#             # assert 'errrrr'
+#             # print('rrrrrrrrrrr')
+#             # raise '1111'
+#             if inx >20:
+#                 pass
+#                 # raise '1111'
+#         if inx > 20:
+#             if var!=0:
+#                 pass
+#                 # raise 'emmmmmm'
 
 class dataloadd_io_fast(Dataset):
     def __init__(self, tump):
@@ -283,16 +328,44 @@ class dataloadd_io_fast(Dataset):
     def __len__(self):
         return self.lenrr
 # dataa_fast =dataloadd_io_fast(tump=fast_ran_list)
+class swish(nn.Module):
+    def __init__(self,config):
 
+        super().__init__()
+        self.lun1 =nn.Linear(config.n_embd,2048)
+        self.lun2 = nn.Linear(2048,config.n_vebs_long
+                                                                      #  ,bias=False
+                                                                        )
+
+
+    def swish(self,x):
+        a =nn.Sigmoid()
+        return x*a(x)
+
+    def forward(self,x):
+        a =self.lun1(x)
+        b =self.swish(a)
+        c =self.lun2(b)
+
+
+        # b = self.swish(x)
+        return c
 class main_part_one(pyl.LightningModule):
     def __init__(self,config):
         super().__init__()
         self.encode =part_of_main_modle(config)
-        self.outline = nn.Linear(config.n_embd,config.n_vebs_long)
-        nn.Sequential(nn.Linear(config.n_embd,2048),nn.SELU(),nn.Linear(2048,config.n_vebs_long,bias=False))
+        self.outline = swish(config)
+
+        # self.swish =swish()
+        # nn.Sequential(
+        #    nn.Linear(config.n_embd,2048),self.swish(),
+        #               nn.Linear(2048,config.n_vebs_long
+        #                                                               #  ,bias=False
+        #                                                                 ))
         self.F_de =res_modle(n_layer=4,chanal=512)
         self.LR =config.LR
         self.L1loss1 =nn.L1Loss()
+
         self.Crosslsoss =nn.CrossEntropyLoss()
         self.MSElsoss = nn.MSELoss()
         # self.perceptual_loss =FeatureLoss(loss=self.MSElsoss ,blocks=[1,2,3],weights=[0.2,0.3,0.5],device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
@@ -302,7 +375,9 @@ class main_part_one(pyl.LightningModule):
                                    nn.ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=(8, 8), stride=2,
                                                       padding=2), nn.SELU(),
                                    nn.ConvTranspose2d(in_channels=64, out_channels=3, kernel_size=(8, 8), stride=2,
-                                                      padding=1), nn.SELU(),
+                                                      padding=1),
+                                   # nn.Sigmoid()
+                                   nn.ReLU(),
                                    )
         self.enco =0
         self.eph = 0
@@ -319,6 +394,9 @@ class main_part_one(pyl.LightningModule):
 
         return img,bh
 
+    # def backward(self, loss) -> None:
+    #     loss.backward()
+
     def training_step(self, batch, batch_idx):
         img,bh,r_bh,att_mask,att_mask_img ,mask_List=batch
         if att_mask_img=='None':
@@ -331,8 +409,8 @@ class main_part_one(pyl.LightningModule):
         mask_List = mask_List.unsqueeze(2).expand((bach_size, seq_length, 48), ).to(bh.device)
         # loss_mask= mask_List+loss_mask
         # loss_mask = loss_mask.ge(1.5).to(bh.device)
-        # loss_mask =  loss_mask
-        # loss_mask = loss_mask.ge(0.5).to(bh.device)
+        loss_mask =  loss_mask
+        loss_mask = loss_mask.ge(0.5).to(bh.device)
 
         x =img
         sssss = loss_mask.detach().cpu().clone().numpy()
@@ -355,13 +433,20 @@ class main_part_one(pyl.LightningModule):
                 image.save('./a/'+str(self.eph)+'__'+str(batch_idx)+'.png')
         img_loss1 =self.L1loss1(img,x)
         img_loss2 =self.MSElsoss(img,x)
+        img_loss3 = self.Crosslsoss(img, x)
         # img_loss =(img_loss1 + img_loss2)/2
         img_loss = img_loss1
-        bh_maskk =loss_mask*bh
-        rh_mask =r_bh*loss_mask
-        # bh_maskk = torch.masked_select(bh , loss_mask)
-        # rh_mask =  torch.masked_select(r_bh , loss_mask)
+        # img_loss =(img_loss1*5 + img_loss3)/6
+        # bh_maskk =loss_mask*bh
+        # rh_mask =r_bh*loss_mask
+        # bh_maskk = bh
+        # rh_mask =  r_bh
+        #
+        bh_maskk = torch.masked_select(bh , loss_mask)
+        rh_mask =  torch.masked_select(r_bh , loss_mask)
         bh_loss =self.Crosslsoss(bh_maskk,rh_mask)
+        # bh_loss1 =self.L1loss1(bh_maskk,rh_mask)
+        # bh_loss =(bh_loss+bh_loss1)/2
 
         main_loss =(img_loss + bh_loss)/2
         # main_loss = img_loss
@@ -434,17 +519,19 @@ class main_part_one(pyl.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        return torch.optim.AdamW(self.parameters(), lr=self.LR)
+        return torch.optim.AdamW(self.parameters(), lr=self.LR,)
 
 if __name__ == '__main__':
-    eeeee =main_part_one(configs())
+    eeeee =main_part_one(configs()).cuda()
     dataa = dataloadd(len11=10000, v_words_path='fix1.json', mapping_path='映射.json', path_ttf='./datas/ttfs/',
                       config=configs())
     # asasd =eeeee.training_step((image,linss1,1,None,None),1)
-    # eeeee.load_state_dict(torch.load(r'C:\Users\autumn\Desktop\poject_all\Font_DL\lightning_logs\version_3\checkpoints\epoch=5-step=3750.ckpt'))
-    trainer = Trainer(gpus=1)
+    # eeeee.load_state_dict(torch.load(r'C:\Users\autumn\Desktop\poject_all\Font_DL\lightning_logs\version_33\checkpoints\epoch=19-step=40000.ckpt'))
+    trainer = Trainer(gpus=1,gradient_clip_val=0.1,)
+
     trainer.fit(eeeee,train_dataloaders=DataLoader(dataset=dataa,batch_size=5 ,#num_workers=1
-                                                   ))
+                                                   )#,ckpt_path=r'C:\Users\autumn\Desktop\poject_all\Font_DL\lightning_logs\version_33\checkpoints\epoch=19-step=40000.ckpt'
+                ,)
 
 
 
