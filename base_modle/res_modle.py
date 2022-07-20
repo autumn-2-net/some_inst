@@ -15,8 +15,8 @@ class res_block(nn.Module):
     def forward(self,x):
         a =x
         b =self.cov(x)
-        b=self.relu(b)
-        # b = self.swish(b)
+        # b=self.relu(b)
+        b = self.swish(b)
         return a+b
 
 class res_modle(nn.Module):
