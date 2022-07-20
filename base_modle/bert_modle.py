@@ -88,7 +88,7 @@ class BERT_Block(nn.Module):
             nn.Linear(config.n_embd, 4 * config.n_embd),
             nn.GELU(),
             nn.Linear(4 * config.n_embd, config.n_embd),
-            nn.Dropout(config.resid_pdrop),
+            nn.Dropout(config.embd_pdrop),
         )
 
 
@@ -246,7 +246,7 @@ class co_attentional(nn.Module):
 
         # regularization
         # self.attn_drop = nn.Dropout(config.attn_pdrop)
-        # self.resid_drop = nn.Dropout(config.resid_pdrop)
+        # self.resid_drop = nn.Dropout(config.embd_pdrop)
         # output projection
         self.proj_img = nn.Linear(config.n_img_embd, config.n_img_embd) #这就一个映射层
         self.proj_bh = nn.Linear(config.n_bh_embd, config.n_bh_embd)
@@ -344,13 +344,13 @@ class co_encode_lay(nn.Module):
             nn.Linear(config.n_bh_embd, 4 * config.n_bh_embd),
             nn.GELU(),
             nn.Linear(4 * config.n_bh_embd, config.n_bh_embd),
-            nn.Dropout(config.resid_pdrop),
+            nn.Dropout(config.embd_pdrop),
         )
         self.mlp_img = nn.Sequential(
             nn.Linear(config.n_img_embd, 4 * config.n_img_embd),
             nn.GELU(),
             nn.Linear(4 * config.n_img_embd, config.n_img_embd),
-            nn.Dropout(config.resid_pdrop),
+            nn.Dropout(config.embd_pdrop),
         )
 
 
