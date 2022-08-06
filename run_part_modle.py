@@ -43,11 +43,11 @@ viz.line([0.],    ## Y的第一个点坐标
 
 
 class configs(main_config):
-    n_head =8
-    LR = 0.0003
-    img_bert_lay = 6
-    bh_bert_lay = 4
-    co_att_lay = 6
+    n_head =16
+    LR = 0.00005
+    img_bert_lay = 7
+    bh_bert_lay = 5
+    co_att_lay = 8
     # n_img_embd = 1024  # 图片特征维度
     # n_bh_embd = 1024  # 笔画特征维度
     #
@@ -115,7 +115,7 @@ class dataloadd(Dataset):
         for i in words:
             list1 = []
             cc = words[i]
-            list1.append(1)
+            # list1.append(1)
             for j in cc:
                 asda = mappi.get(j)
                 if asda is None:
@@ -227,8 +227,8 @@ class dataloadd(Dataset):
         leeeor =len(bh)
         for inx, val in enumerate(bh):
             cdf =random.random()
-            if inx ==0:
-                continue
+            # if inx ==0:
+            #     continue
             if inx ==(leeeor-1):
                 continue
 
@@ -247,7 +247,7 @@ class dataloadd(Dataset):
 
         if mask_num ==0:
             lenss =len(out_bh)
-            inx =np.random.randint(2, lenss)
+            inx =np.random.randint(0, lenss)
             out_bh[inx] =43
             mask_list.append(inx)
 
@@ -410,7 +410,7 @@ class main_part_one(pyl.LightningModule):
         # loss_mask= mask_List+loss_mask
         # loss_mask = loss_mask.ge(1.5).to(bh.device)
         loss_mask =  loss_mask
-        loss_mask = loss_mask.ge(0.5).to(bh.device)
+        # loss_mask = loss_mask.ge(0.5).to(bh.device)
 
         x =img
         sssss = loss_mask.detach().cpu().clone().numpy()
@@ -437,13 +437,13 @@ class main_part_one(pyl.LightningModule):
         # img_loss =(img_loss1 + img_loss2)/2
         img_loss = img_loss1
         # img_loss =(img_loss1*5 + img_loss3)/6
-        # bh_maskk =loss_mask*bh
-        # rh_mask =r_bh*loss_mask
+        bh_maskk =loss_mask*bh
+        rh_mask =r_bh*loss_mask
         # bh_maskk = bh
         # rh_mask =  r_bh
         #
-        bh_maskk = torch.masked_select(bh , loss_mask)
-        rh_mask =  torch.masked_select(r_bh , loss_mask)
+        # bh_maskk = torch.masked_select(bh , loss_mask)
+        # rh_mask =  torch.masked_select(r_bh , loss_mask)
         bh_loss =self.Crosslsoss(bh_maskk,rh_mask)
         # bh_loss1 =self.L1loss1(bh_maskk,rh_mask)
         # bh_loss =(bh_loss+bh_loss1)/2
@@ -527,7 +527,7 @@ if __name__ == '__main__':
                       config=configs())
     # asasd =eeeee.training_step((image,linss1,1,None,None),1)
     # eeeee.load_state_dict(torch.load(r'C:\Users\autumn\Desktop\poject_all\Font_DL\lightning_logs\version_33\checkpoints\epoch=19-step=40000.ckpt'))
-    trainer = Trainer(gpus=1,gradient_clip_val=0.1,)
+    trainer = Trainer(gpus=1,gradient_clip_val=0.001,)
 
     trainer.fit(eeeee,train_dataloaders=DataLoader(dataset=dataa,batch_size=5 ,#num_workers=1
                                                    )#,ckpt_path=r'C:\Users\autumn\Desktop\poject_all\Font_DL\lightning_logs\version_33\checkpoints\epoch=19-step=40000.ckpt'
