@@ -45,9 +45,9 @@ viz.line([0.],    ## Y的第一个点坐标
 class configs(main_config):
     n_head =16
     LR = 0.00005
-    img_bert_lay = 6
-    bh_bert_lay = 4
-    co_att_lay = 6
+    img_bert_lay = 7
+    bh_bert_lay = 5
+    co_att_lay = 8
     # n_img_embd = 1024  # 图片特征维度
     # n_bh_embd = 1024  # 笔画特征维度
     #
