@@ -43,11 +43,11 @@ viz.line([0.],    ## Y的第一个点坐标
 
 
 class configs(main_config):
-    n_head =16
+    n_head =8
     LR = 0.00005
-    img_bert_lay = 7
-    bh_bert_lay = 5
-    co_att_lay = 8
+    img_bert_lay = 6
+    bh_bert_lay = 4
+    co_att_lay = 6
     # n_img_embd = 1024  # 图片特征维度
     # n_bh_embd = 1024  # 笔画特征维度
     #
@@ -527,7 +527,7 @@ if __name__ == '__main__':
                       config=configs())
     # asasd =eeeee.training_step((image,linss1,1,None,None),1)
     # eeeee.load_state_dict(torch.load(r'C:\Users\autumn\Desktop\poject_all\Font_DL\lightning_logs\version_33\checkpoints\epoch=19-step=40000.ckpt'))
-    trainer = Trainer(gpus=1,gradient_clip_val=0.001,)
+    trainer = Trainer(gpus=1,gradient_clip_val=0.1,)
 
     trainer.fit(eeeee,train_dataloaders=DataLoader(dataset=dataa,batch_size=5 ,#num_workers=1
                                                    )#,ckpt_path=r'C:\Users\autumn\Desktop\poject_all\Font_DL\lightning_logs\version_33\checkpoints\epoch=19-step=40000.ckpt'
