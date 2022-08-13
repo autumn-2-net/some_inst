@@ -44,12 +44,12 @@ viz.line([0.],    ## Y的第一个点坐标
 
 
 class configs(main_config):
-    n_head =8
+    n_head =16
     LR = 0.00005
-    img_bert_lay = 8
-    bh_bert_lay = 6
+    img_bert_lay = 7
+    bh_bert_lay = 5
 
-    co_att_lay = 9
+    co_att_lay = 8
     # n_img_embd = 1024  # 图片特征维度
     # n_bh_embd = 1024  # 笔画特征维度
     #
@@ -352,11 +352,12 @@ class swish(nn.Module):
 
         # b = self.swish(x)
         return c
-class main_part_one(pyl.LightningModule):
+class main_part_tow(pyl.LightningModule):
     def __init__(self,config):
         super().__init__()
         self.encode =part_of_main_modle(config)
-        self.outline = swish(config)
+
+
 
         # self.swish =swish()
         # nn.Sequential(
@@ -364,7 +365,7 @@ class main_part_one(pyl.LightningModule):
         #               nn.Linear(2048,config.n_vebs_long
         #                                                               #  ,bias=False
         #                                                                 ))
-        self.F_de =res_modle(n_layer=4,chanal=512)
+        self.F_de =res_modle(n_layer=7,chanal=512)
         self.LR =config.LR
         self.L1loss1 =nn.L1Loss()
 
@@ -390,11 +391,11 @@ class main_part_one(pyl.LightningModule):
         # img1 =img.transpose(1, 2).view(img.size(0),512,8,8)
         img =self.decode(self.F_de(img.transpose(1, 2).view(img.size(0),self.config.n_img_embd,8,8)))
         # img = self.decode(img.transpose(1, 2).view(img.size(0), 512, 8, 8))
-        bh = self.outline(bh)
-        sfmax =nn.Softmax()
-        bh =sfmax(bh)
 
-        return img,bh
+
+
+
+        return img
 
     # def backward(self, loss) -> None:
     #     loss.backward()
@@ -525,26 +526,38 @@ class main_part_one(pyl.LightningModule):
     def configure_optimizers(self):
         return torch.optim.AdamW(self.parameters(), lr=self.LR,)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 if __name__ == '__main__':
     eeeee =main_part_one(configs()).cuda()
     dataa = dataloadd(len11=10000, v_words_path='fix1.json', mapping_path='映射.json', path_ttf='./datas/ttfs/',
                       config=configs())
     # asasd =eeeee.training_step((image,linss1,1,None,None),1)
     # eeeee.load_state_dict(torch.load(r'C:\Users\autumn\Desktop\poject_all\Font_DL\lightning_logs\version_33\checkpoints\epoch=19-step=40000.ckpt'))、
-    logger = TensorBoardLogger('tb_logs', name='part1')
-    trainer = Trainer(gpus=1,gradient_clip_val=0.1,logger=logger,max_epochs=360
+    logger = TensorBoardLogger('tb_logs', name='part2')
+    trainer = Trainer(gpus=1,gradient_clip_val=0.1,logger=logger
                       #, ckpt_path=r'C:\Users\autumn\Desktop\poject_all\Font_DL\lightning_logs\version_41\checkpoints\epoch=34-step=70000.ckpt'
                       )
     # trainer.save_checkpoint('test.pyt')
-    trainer.fit(eeeee,train_dataloaders=DataLoader(dataset=dataa,batch_size=6
-                                                   #,num_workers=1
+    trainer.fit(eeeee,train_dataloaders=DataLoader(dataset=dataa,batch_size=5 ,#num_workers=1
                                                    )
-                ,ckpt_path=r'C:\Users\autumn\Desktop\poject_all\Font_DL\tb_logs\part1\version_1\checkpoints\epoch=239-step=400080.ckpt'
+                ,ckpt_path=r'C:\Users\autumn\Desktop\poject_all\Font_DL\lightning_logs\version_43\checkpoints\epoch=41-step=84000.ckpt'
                 ,)
-
-
-
-
-
-
-
